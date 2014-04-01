@@ -1,0 +1,106 @@
+#!/usr/bin/perl -w
+use strict;
+use warnings;
+use Getopt::Long;
+use Pod::Usage;
+
+
+
+### Default CONFIG
+my($opt_help, $opt_man);
+my $opt_dir = '~/Pictures/';
+my $opt_time = 1200; # Time is in seconds
+
+### Get command line arguments
+GetOptions (
+  "help!" => \$opt_help,
+  "man!" => \$opt_man,
+  "dir=s" => \$opt_dir,
+  "time=i" => \$opt_time
+) or pod2usage("Try '$0 --help' for more information.\n");
+
+pod2usage(1) if $opt_help;
+pod2usage(2) if $opt_man;
+
+printf("dir : %s\n",$opt_dir);
+printf("time : %d seconds\n",$opt_time);
+
+### Get gnome version
+my $gnome_about = `gnome-session --version`;
+my ($gnome_version) = $gnome_about =~ m/([0-9\.]+)/g;
+my @gnome_version = split(/\./, $gnome_version);
+#printf("gnome about : %s",$gnome_about);
+#printf("gnome major version : %s\n\n",$gnome_version[0]);
+
+### Search image files in img-dir
+my @photos = `find -L $opt_dir -type f -name '*.jpg' -o -name '*.gif' -o -name '*.png' -o -name '*.jpeg' -o -name '*.bmp'`;
+chomp(@photos);
+my $photo;
+my $nbpics = scalar(@photos);
+
+pod2usage("$0: No image found.\n") if $nbpics == 0;
+printf("%d pictures found\n",$nbpics);
+
+### loop every switch time 
+while(1){
+    $photo = $photos[rand($#photos)];
+    printf("set background=%s\n",$photo);
+
+    # gnome 2
+    if($gnome_version[0]==2){
+      `gconftool-2 -t string -s /desktop/gnome/background/picture_filename "$photo"`;
+    }
+    # gnome 3
+    elsif($gnome_version[1]==3){
+      `gsettings set org.gnome.desktop.background picture-uri “file:///$photo”`;
+    }
+
+    sleep($opt_time);
+}
+__END__
+
+=head1 NAME
+
+gnome-background-changer
+
+=head1 SYNOPSIS
+
+gnome-background-changer [options]
+
+ Options:
+   -help            brief help message
+   -man             full documentation
+   -dir             images directory
+   -speed           delay for change wallpaper
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=item B<-man>
+
+Prints the manual page and exits.
+
+=item B<-dir> [path]
+
+Specific images directory. Default is '$HOME/Pictures/'.
+
+=item B<-speed> [seconds]
+
+Delay between wallpaper change. Default is 1200
+
+=back
+
+=head1 DESCRIPTION
+
+B<This program> will randomly change wallpaper from given directory.
+
+=head1 AUTHOR
+
+Jeremy Clement
+
+=cut
